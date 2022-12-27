@@ -8,12 +8,24 @@ var schema = buildSchema(`
     user(id: Int!): User
     users(name: String): [User]
   },
+
+  type Mutation{
+    addUser(input: UserInput!):User
+
+  },
   type User {
     id: Int
     name: String
-    age: Int
     address: String
     dob: String
+  },
+
+  input UserInput{
+        id: Int
+    name: String
+    address: String
+    dob: String
+
   }
 `);
 
@@ -57,18 +69,27 @@ var getUser = function(args) {
 
 // Return a list of users (takes an optional name parameter)
 var retrieveUsers = function(args) {
-  //if (args.name) {
-  //   var name = args.name;
-  //   return users.filter(user => user.name === name);
-  // } else {
+  if (args.name) {
+    var name = args.name;
+    return users.filter(user => user.name === name);
+  } else {
     return users;
-  //}
+  }
+}
+
+var addUser=function(args){
+  console.log("adding user")
+  users.push(args.input);
+  var userID = args.id
+  return getUser(args.input);
+
 }
 
 // Root resolver
 var root = { 
   user: getUser,  // Resolver function to return user with specific id
-  users: retrieveUsers
+  users: retrieveUsers,
+  addUser:addUser
 };
 
 // Create an express server and a GraphQL endpoint
