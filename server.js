@@ -1,87 +1,35 @@
 var express = require('express');
 var graphqlHTTP = require('express-graphql');
-var { buildSchema } = require('graphql');
+var graphQLSchema = require('./graphql-schema');
+const Users = require('./user')
 
-// Initialize a GraphQL schema
-var schema = buildSchema(`
-  type Query {
-    user(id: Int!): User
-    users(name: String): [User]
-  },
-
-  type Mutation{
-    addUser(input: UserInput!):User
-
-  },
-  type User {
-    id: Int
-    name: String
-    address: String
-    dob: String
-  },
-
-  input UserInput{
-        id: Int
-    name: String
-    address: String
-    dob: String
-
-  }
-`);
-
-// Sample users
-var users = [
-  {
-    id: 1,
-    name: 'David',
-    age: '21',
-    address: 'Street 21, Block 1',
-    dob: '12/09/1981'
-  },
-  {
-    id: 2,
-    name: 'Harley',
-    age: '22',
-    address: 'Street 21, Block 2',
-    dob: '12/09/1909'
-  },
-  {
-    id: 3,
-    name: 'Bob',
-    age: '23',
-    address: 'Street 21, Block 3',
-    dob: '12/09/1994'
-  },
-  {
-    id: 4,
-    name: 'Josephine',
-    age: '23',
-    address: 'Street 21, Block 4',
-    dob: '12/09/1989'
-  }
-];
 
 // Return a single user (based on id)
-var getUser = function(args) {
+var getUser = async function(args) {
   var userID = args.id;
-  return users.filter(user => user.id == userID)[0];
+  return await Users.find({ id: userID}).select("id name address dob").exec();
 }
 
 // Return a list of users (takes an optional name parameter)
-var retrieveUsers = function(args) {
+var retrieveUsers = async function(args) {
+
   if (args.name) {
     var name = args.name;
-    return users.filter(user => user.name === name);
+    return await Users.find({ name: name}).select("id name address dob").exec();
   } else {
-    return users;
+    return Users.find().exec();
   }
 }
 
-var addUser=function(args){
-  console.log("adding user")
-  users.push(args.input);
-  var userID = args.id
-  return getUser(args.input);
+var addUser=async function(args){
+  const doc = new Users({
+    id: args.input.id,
+    name: args.input.name,
+    address: args.input.address,
+    dob: args.input.dob
+  });
+  await doc.save(args.input);
+  return Users.findOne();
 
 }
 
@@ -95,7 +43,7 @@ var root = {
 // Create an express server and a GraphQL endpoint
 var app = express();
 app.use('/graphql', graphqlHTTP({
-  schema: schema,  // Must be provided
+  schema: graphQLSchema,  // Must be provided
   rootValue: root,
   graphiql: true,  // Enable GraphiQL when server endpoint is accessed in browser
 }));
